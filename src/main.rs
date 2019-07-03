@@ -1,5 +1,5 @@
 fn main() {
-    let grid = minotaur::Grid::binary_tree(20, 20);
+    let grid = minotaur::Grid::binary_tree(200, 200);
     println!("{}", grid);
 
     let image = grid.to_image();

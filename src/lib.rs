@@ -3,7 +3,7 @@ extern crate bitflags;
 extern crate image;
 
 use image::{ImageBuffer, GrayImage};
-
+use rand::{thread_rng, Rng};
 
 /*
 Cell represents a single square in a maze's Grid.
@@ -47,23 +47,49 @@ impl Grid {
         // northern neighbors. So link with eastern neighbor,
         // except the corner, which has neither a northern nor
         // eastern neighbor.
-        for i in 0..(width - 1) {
-            cells[i] |= Cell::EAST;
-            cells[i + 1] |= Cell::WEST
-        }
 
-        for i in width..(cells.len()) {
-            if (i + 1) % width == 0 {
+        for i in 0..cells.len() {
+            let east_edge = (i + 1) % width == 0;
+            let north_edge = i < width;
+            let choose_north = rand::random();
+
+            if !north_edge && (east_edge || choose_north) {
                 cells[i] |= Cell::NORTH;
                 cells[i - width] |= Cell::SOUTH;
-            } else {
-                if rand::random() {
-                    cells[i] |= Cell::NORTH;
-                    cells[i - width] |= Cell::SOUTH;
-                } else {
-                    cells[i] |= Cell::EAST;
-                    cells[i + 1] |= Cell::WEST;
-                }
+            } else if !east_edge {
+                cells[i] |= Cell::EAST;
+                cells[i + 1] |= Cell::WEST;
+            }
+        }
+
+        let perfect = true;
+
+        Grid {
+            cells,
+            perfect,
+            width,
+            height,
+        }
+    }
+
+    pub fn sidewinder(height: usize, width: usize) -> Grid {
+        let mut cells = vec![Cell::default(); height * width];
+
+        let mut run_start = width;
+        let mut rng = thread_rng();
+        for i in 0..cells.len() {
+            let east_edge = (i + 1) % width == 0;
+            let north_edge = i < width;
+            let choose_north = rand::random();
+
+            if !north_edge && (east_edge || choose_north) {
+                let i = rng.gen_range(run_start, i + 1);
+                cells[i] |= Cell::NORTH;
+                cells[i - width] |= Cell::SOUTH;
+                run_start = i + 1;
+            } else if !east_edge {
+                cells[i] |= Cell::EAST;
+                cells[i + 1] |= Cell::WEST;
             }
         }
 
