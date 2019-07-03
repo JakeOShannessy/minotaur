@@ -83,14 +83,17 @@ impl Grid {
             let choose_north = rand::random();
 
             if !north_edge && (east_edge || choose_north) {
-                let i = rng.gen_range(run_start, i + 1);
-                cells[i] |= Cell::NORTH;
-                cells[i - width] |= Cell::SOUTH;
+                let chosen = rng.gen_range(run_start, i + 1);                
+                cells[chosen] |= Cell::NORTH;
+                cells[chosen - width] |= Cell::SOUTH;
                 run_start = i + 1;
             } else if !east_edge {
                 cells[i] |= Cell::EAST;
                 cells[i + 1] |= Cell::WEST;
+            } else {
+                run_start = i + 1;
             }
+            
         }
 
         let perfect = true;
