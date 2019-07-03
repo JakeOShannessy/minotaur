@@ -2,6 +2,15 @@
 name = "minotaur"
 version = "0.1.0"
 authors = ["Jonathan Stites <mail@jonstites.com>"]
+description = "A command-line program for generating mazes."
 edition = "2018"
+readme = "README.md"
+documentation = "https://github.com/jonstites/minotaur"
+homepage = "https://github.com/jonstites/minotaur"
+repository = "https://github.com/jonstites/minotaur"
+license = "MIT OR Apache-2.0"
+keywords = ["cli"]
+categories = ["command-line-utilities"]
 
-[dependencies]
+[badges]
+travis-ci = { repository = "jonstites/minotaur", branch = "master" }
