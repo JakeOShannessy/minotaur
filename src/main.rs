@@ -1,3 +1,5 @@
+use minotaur::hello;
+
 fn main() {
-    println!("Hello, world!");
+    hello()
 }

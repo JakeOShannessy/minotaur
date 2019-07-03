@@ -14,3 +14,6 @@ categories = ["command-line-utilities"]
 
 [badges]
 travis-ci = { repository = "jonstites/minotaur", branch = "master" }
+
+[dependencies]
+bitflags = "1.1.0"
