@@ -2,8 +2,9 @@
 extern crate bitflags;
 extern crate image;
 
-use image::{ImageBuffer, GrayImage};
+use image::{GrayImage, ImageBuffer};
 use rand::{thread_rng, Rng};
+
 
 /*
 Cell represents a single square in a maze's Grid.
@@ -37,8 +38,6 @@ pub struct Grid {
 }
 
 impl Grid {
-
-
     // Must be at least 1x1
     pub fn binary_tree(height: usize, width: usize) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
@@ -83,7 +82,7 @@ impl Grid {
             let choose_north = rand::random();
 
             if !north_edge && (east_edge || choose_north) {
-                let chosen = rng.gen_range(run_start, i + 1);                
+                let chosen = rng.gen_range(run_start, i + 1);
                 cells[chosen] |= Cell::NORTH;
                 cells[chosen - width] |= Cell::SOUTH;
                 run_start = i + 1;
@@ -93,7 +92,6 @@ impl Grid {
             } else {
                 run_start = i + 1;
             }
-            
         }
 
         let perfect = true;
@@ -114,7 +112,8 @@ impl Grid {
         let background_pixel = image::Luma([255u8]);
         let wall_pixel = image::Luma([0u8]);
 
-        let mut image = ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
+        let mut image =
+            ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
 
         for (cell_index, cell) in self.cells.iter().enumerate() {
             let x = (cell_index % self.width) * cell_size;
@@ -151,12 +150,11 @@ impl Grid {
             }
         }
 
-    image
+        image
     }
 }
 
 impl std::fmt::Display for Grid {
-
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = format!("+{}\n", "---+".to_string().repeat(self.width));
 
@@ -164,15 +162,10 @@ impl std::fmt::Display for Grid {
         let mut bottom = "+".to_string();
 
         for (i, cell) in self.cells.iter().enumerate() {
-
             top.push_str("   ");
-            let east_boundary = if cell.contains(Cell::EAST) {
-                " "
-            } else {
-                "|"
-            };
+            let east_boundary = if cell.contains(Cell::EAST) { " " } else { "|" };
             top.push_str(east_boundary);
-            
+
             let south_boundary = if cell.contains(Cell::SOUTH) {
                 "   "
             } else {
@@ -191,7 +184,6 @@ impl std::fmt::Display for Grid {
                 top = "|".to_string();
                 bottom = "+".to_string();
             }
-
         }
 
         write!(f, "{}", output)
