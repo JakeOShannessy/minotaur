@@ -2,8 +2,9 @@
 extern crate bitflags;
 extern crate image;
 
-use image::{ImageBuffer, GrayImage};
-use rand::{thread_rng, Rng};
+use image::{RgbImage, ImageBuffer};
+use rand::{Rng, SeedableRng};
+use rand_pcg::Lcg64Xsh32;
 
 /*
 Cell represents a single square in a maze's Grid.
@@ -37,21 +38,23 @@ pub struct Grid {
 }
 
 impl Grid {
-
-
     // Must be at least 1x1
-    pub fn binary_tree(height: usize, width: usize) -> Grid {
+    pub fn binary_tree(height: usize, width: usize, seed: Option<u64>) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
 
         // For all cells in the northernmost row, there are no
         // northern neighbors. So link with eastern neighbor,
         // except the corner, which has neither a northern nor
         // eastern neighbor.
+        let mut rng = match seed {
+            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
+            None => Lcg64Xsh32::from_entropy(),
+        };
 
         for i in 0..cells.len() {
             let east_edge = (i + 1) % width == 0;
             let north_edge = i < width;
-            let choose_north = rand::random();
+            let choose_north = rng.gen();
 
             if !north_edge && (east_edge || choose_north) {
                 cells[i] |= Cell::NORTH;
@@ -72,18 +75,21 @@ impl Grid {
         }
     }
 
-    pub fn sidewinder(height: usize, width: usize) -> Grid {
+    pub fn sidewinder(height: usize, width: usize, seed: Option<u64>) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
 
         let mut run_start = width;
-        let mut rng = thread_rng();
+        let mut rng = match seed {
+            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
+            None => Lcg64Xsh32::from_entropy(),
+        };
         for i in 0..cells.len() {
             let east_edge = (i + 1) % width == 0;
             let north_edge = i < width;
-            let choose_north = rand::random();
+            let choose_north = rng.gen();
 
             if !north_edge && (east_edge || choose_north) {
-                let chosen = rng.gen_range(run_start, i + 1);                
+                let chosen = rng.gen_range(run_start, i + 1);
                 cells[chosen] |= Cell::NORTH;
                 cells[chosen - width] |= Cell::SOUTH;
                 run_start = i + 1;
@@ -93,7 +99,6 @@ impl Grid {
             } else {
                 run_start = i + 1;
             }
-            
         }
 
         let perfect = true;
@@ -106,57 +111,63 @@ impl Grid {
         }
     }
 
-    pub fn to_image(&self) -> GrayImage {
-        let cell_size = 10;
-        let image_width = cell_size * self.width + 1;
-        let image_height = cell_size * self.height + 1;
+    pub fn to_image(&self, cell_size: usize, wall_size: usize, background_pixel: image::Rgb<u8>, wall_pixel: image::Rgb<u8>) -> RgbImage {        
+        let image_width = cell_size * self.width + wall_size;
+        let image_height = cell_size * self.height + wall_size;
 
-        let background_pixel = image::Luma([255u8]);
-        let wall_pixel = image::Luma([0u8]);
-
-        let mut image = ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
+        let mut image =
+            ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
 
         for (cell_index, cell) in self.cells.iter().enumerate() {
             let x = (cell_index % self.width) * cell_size;
             let y = (cell_index / self.width) * cell_size;
 
             if !cell.contains(Cell::NORTH) {
-                for i in 0..=cell_size {
-                    let x = x + i;
-                    image.put_pixel(x as u32, y as u32, wall_pixel)
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..=cell_size {
+                        let x_temp = x + cell_offset;
+                        let y_temp = y + wall_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel)
+                    }
                 }
             }
 
             if !cell.contains(Cell::SOUTH) {
-                for i in 0..=cell_size {
-                    let x = x + i;
-                    let y = y + cell_size;
-                    image.put_pixel(x as u32, y as u32, wall_pixel)
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..(cell_size + wall_size) {
+                        let x_temp = x + cell_offset;
+                        let y_temp = y + cell_size + wall_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel)
+                    }
                 }
             }
 
             if !cell.contains(Cell::WEST) {
-                for i in 0..=cell_size {
-                    let y = y + i;
-                    image.put_pixel(x as u32, y as u32, wall_pixel);
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..=cell_size {
+                        let y_temp = y + cell_offset;
+                        let x_temp = x + wall_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel);
+                    }
                 }
             }
 
             if !cell.contains(Cell::EAST) {
-                for i in 0..=cell_size {
-                    let x = x + cell_size;
-                    let y = y + i;
-                    image.put_pixel(x as u32, y as u32, wall_pixel);
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..=cell_size {
+                        let x_temp = x + cell_size + wall_offset;
+                        let y_temp = y + cell_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel);
+                    }
                 }
             }
         }
 
-    image
+        image
     }
 }
 
 impl std::fmt::Display for Grid {
-
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = format!("+{}\n", "---+".to_string().repeat(self.width));
 
@@ -164,15 +175,10 @@ impl std::fmt::Display for Grid {
         let mut bottom = "+".to_string();
 
         for (i, cell) in self.cells.iter().enumerate() {
-
             top.push_str("   ");
-            let east_boundary = if cell.contains(Cell::EAST) {
-                " "
-            } else {
-                "|"
-            };
+            let east_boundary = if cell.contains(Cell::EAST) { " " } else { "|" };
             top.push_str(east_boundary);
-            
+
             let south_boundary = if cell.contains(Cell::SOUTH) {
                 "   "
             } else {
@@ -191,7 +197,6 @@ impl std::fmt::Display for Grid {
                 top = "|".to_string();
                 bottom = "+".to_string();
             }
-
         }
 
         write!(f, "{}", output)

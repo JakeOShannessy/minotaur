@@ -1,7 +1,126 @@
-fn main() {
-    let grid = minotaur::Grid::sidewinder(4, 4);
-    println!("{}", grid);
+#[deny(unsafe_code)]
 
-    let image = grid.to_image();
-    image.save("test.png").unwrap();
+extern crate structopt;
+
+use std::ffi::OsStr;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::path::Path;
+use structopt::clap::{arg_enum, AppSettings};
+use structopt::StructOpt;
+
+
+
+arg_enum! {
+    #[derive(Debug)]
+    enum Algorithm {
+        BinaryTree,
+        Sidewinder,
+    }
+}
+
+fn parse_hex_to_rgb(src: &str) -> Result<image::Rgb<u8>, ParseHexError> {
+    let src = if src.starts_with("#") {
+        &src[1..]
+    } else {
+        src
+    };
+
+    if src.len() != 6 {
+        return Err(ParseHexError::Length(src.to_string()));
+    }
+
+    let mut rgb = [0_u8; 3];
+    rgb[0] = u8::from_str_radix(&src[..2], 16)?;
+    rgb[1] = u8::from_str_radix(&src[2..4], 16)?;
+    rgb[2] = u8::from_str_radix(&src[4..6], 16)?;
+    Ok(image::Rgb(rgb))
+}
+
+
+#[derive(Debug)]
+enum ParseHexError {
+    IntError(std::num::ParseIntError),
+    Length(String)
+}
+
+impl std::fmt::Display for ParseHexError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ParseHexError::Length(e) =>
+                write!(f, "Expected a 6 charactor color value in hex, but got: {:?}", e),
+            // This is a wrapper, so defer to the underlying types' implementation of `fmt`.
+            ParseHexError::IntError(ref e) => e.fmt(f),
+        }
+    }
+}
+
+impl From<std::num::ParseIntError> for ParseHexError {
+    fn from(err: std::num::ParseIntError) -> ParseHexError {
+        ParseHexError::IntError(err)
+    }
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(rename_all = "kebab-case", global_settings = &[AppSettings::ColoredHelp])]
+struct Opt {
+    /// Maze generating algorithm
+    #[structopt(
+        short = "a", long = "algorithm", default_value = "BinaryTree",
+        case_insensitive = true, possible_values = &Algorithm::variants(),
+        display_order = 0_usize)]
+    algorithm: Algorithm,
+    /// Maze width in number of cells
+    #[structopt(short = "x", long = "width", default_value = "5", display_order = 1_usize)]
+    width: usize,
+    /// Maze height in number of cells
+    #[structopt(short = "y", long = "height", default_value = "5", display_order = 2_usize)]
+    height: usize,
+    /// Output file. Can be ".png" for an image - otherwise, saves as ASCII art
+    #[structopt(short = "o", long = "output", default_value = "/dev/stdout", case_insensitive = true)]
+    output: String,
+    /// Seed for random number generator
+    #[structopt(short = "s", long = "seed")]
+    seed: Option<u64>,
+    /// Cell size when saving to an image file
+    #[structopt(long = "cell-size", default_value = "10")]
+    cell_size: usize,
+    /// Wall size when saving to an image file
+    #[structopt(long = "wall-size", default_value = "1")]
+    wall_size: usize,
+    /// Background color when saving to an image file
+    #[structopt(long = "background-color", default_value = "#FFFFFF", parse(try_from_str = parse_hex_to_rgb))]
+    background_color: image::Rgb<u8>,
+    /// Wall color when saving to an image file
+    #[structopt(long = "wall-color", default_value = "#000000", parse(try_from_str = parse_hex_to_rgb))]
+    wall_color: image::Rgb<u8>,
+}
+
+fn main() -> std::io::Result<()> {
+    use minotaur::Grid;
+    use Algorithm::*;
+
+    let opt = Opt::from_args();
+
+    let grid = match opt.algorithm {
+        BinaryTree => Grid::binary_tree(opt.width, opt.height, opt.seed),
+        Sidewinder => Grid::sidewinder(opt.width, opt.height, opt.seed),
+    };
+
+    let filepath = Path::new(&opt.output);
+
+    match filepath.extension().and_then(OsStr::to_str) {
+        Some("png") => {
+            let image = grid.to_image(opt.cell_size, opt.wall_size, opt.background_color, opt.wall_color);
+            image.save(opt.output)?;
+        },
+        _ => {
+            let file = File::create(filepath)?;
+            let mut file_writer = BufWriter::new(file);
+            file_writer.write_all(format!("{}", grid).as_bytes())?;
+        },
+
+    };
+
+    Ok(())
 }

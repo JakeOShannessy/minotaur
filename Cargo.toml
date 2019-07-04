@@ -17,5 +17,7 @@ travis-ci = { repository = "jonstites/minotaur", branch = "master" }
 
 [dependencies]
 bitflags = "1.1.0"
-rand = "0.7.0"
 image = "0.21.2"
+rand = "0.7.0"
+structopt = { git = "https://github.com/TeXitoi/structopt" }
+rand_pcg = "0.2.0"
