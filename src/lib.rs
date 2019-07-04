@@ -112,8 +112,8 @@ impl Grid {
     }
 
     pub fn to_image(&self, cell_size: usize, wall_size: usize, background_pixel: image::Rgb<u8>, wall_pixel: image::Rgb<u8>) -> RgbImage {        
-        let image_width = cell_size * self.width + 1;
-        let image_height = cell_size * self.height + 1;
+        let image_width = cell_size * self.width + wall_size;
+        let image_height = cell_size * self.height + wall_size;
 
         let mut image =
             ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
@@ -123,32 +123,42 @@ impl Grid {
             let y = (cell_index / self.width) * cell_size;
 
             if !cell.contains(Cell::NORTH) {
-                for i in 0..=cell_size {
-                    let x = x + i;
-                    image.put_pixel(x as u32, y as u32, wall_pixel)
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..=cell_size {
+                        let x_temp = x + cell_offset;
+                        let y_temp = y + wall_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel)
+                    }
                 }
             }
 
             if !cell.contains(Cell::SOUTH) {
-                for i in 0..=cell_size {
-                    let x = x + i;
-                    let y = y + cell_size;
-                    image.put_pixel(x as u32, y as u32, wall_pixel)
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..(cell_size + wall_size) {
+                        let x_temp = x + cell_offset;
+                        let y_temp = y + cell_size + wall_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel)
+                    }
                 }
             }
 
             if !cell.contains(Cell::WEST) {
-                for i in 0..=cell_size {
-                    let y = y + i;
-                    image.put_pixel(x as u32, y as u32, wall_pixel);
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..=cell_size {
+                        let y_temp = y + cell_offset;
+                        let x_temp = x + wall_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel);
+                    }
                 }
             }
 
             if !cell.contains(Cell::EAST) {
-                for i in 0..=cell_size {
-                    let x = x + cell_size;
-                    let y = y + i;
-                    image.put_pixel(x as u32, y as u32, wall_pixel);
+                for wall_offset in 0..wall_size {
+                    for cell_offset in 0..=cell_size {
+                        let x_temp = x + cell_size + wall_offset;
+                        let y_temp = y + cell_offset;
+                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel);
+                    }
                 }
             }
         }

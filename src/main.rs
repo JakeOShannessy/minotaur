@@ -76,7 +76,7 @@ struct Opt {
     /// Maze height in number of cells
     #[structopt(short = "y", long = "height", default_value = "5", display_order = 2_usize)]
     height: usize,
-    /// Output file. Uses the file extension to determine whether to save an Ascii art image or an image
+    /// Output file. Can be ".png" for an image - otherwise, saves as ASCII art
     #[structopt(short = "o", long = "output", default_value = "/dev/stdout", case_insensitive = true)]
     output: String,
     /// Seed for random number generator
@@ -86,7 +86,7 @@ struct Opt {
     #[structopt(long = "cell-size", default_value = "10")]
     cell_size: usize,
     /// Wall size when saving to an image file
-    #[structopt(long = "wall-size", default_value = "10")]
+    #[structopt(long = "wall-size", default_value = "1")]
     wall_size: usize,
     /// Background color when saving to an image file
     #[structopt(long = "background-color", default_value = "#FFFFFF", parse(try_from_str = parse_hex_to_rgb))]
@@ -110,15 +110,16 @@ fn main() -> std::io::Result<()> {
     let filepath = Path::new(&opt.output);
 
     match filepath.extension().and_then(OsStr::to_str) {
-        Some("txt") | None => {
+        Some("png") => {
+            let image = grid.to_image(opt.cell_size, opt.wall_size, opt.background_color, opt.wall_color);
+            image.save(opt.output)?;
+        },
+        _ => {
             let file = File::create(filepath)?;
             let mut file_writer = BufWriter::new(file);
             file_writer.write_all(format!("{}", grid).as_bytes())?;
         },
-        _ => {
-            let image = grid.to_image(opt.cell_size, opt.wall_size, opt.background_color, opt.wall_color);
-            image.save(opt.output)?;
-        },
+
     };
 
     Ok(())
