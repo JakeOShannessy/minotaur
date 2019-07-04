@@ -3,8 +3,8 @@ extern crate bitflags;
 extern crate image;
 
 use image::{GrayImage, ImageBuffer};
-use rand::{thread_rng, Rng};
-
+use rand::{Rng, SeedableRng};
+use rand_pcg::Lcg64Xsh32;
 
 /*
 Cell represents a single square in a maze's Grid.
@@ -39,18 +39,22 @@ pub struct Grid {
 
 impl Grid {
     // Must be at least 1x1
-    pub fn binary_tree(height: usize, width: usize) -> Grid {
+    pub fn binary_tree(height: usize, width: usize, seed: Option<u64>) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
 
         // For all cells in the northernmost row, there are no
         // northern neighbors. So link with eastern neighbor,
         // except the corner, which has neither a northern nor
         // eastern neighbor.
+        let mut rng = match seed {
+            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
+            None => Lcg64Xsh32::from_entropy(),
+        };
 
         for i in 0..cells.len() {
             let east_edge = (i + 1) % width == 0;
             let north_edge = i < width;
-            let choose_north = rand::random();
+            let choose_north = rng.gen();
 
             if !north_edge && (east_edge || choose_north) {
                 cells[i] |= Cell::NORTH;
@@ -71,15 +75,18 @@ impl Grid {
         }
     }
 
-    pub fn sidewinder(height: usize, width: usize) -> Grid {
+    pub fn sidewinder(height: usize, width: usize, seed: Option<u64>) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
 
         let mut run_start = width;
-        let mut rng = thread_rng();
+        let mut rng = match seed {
+            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
+            None => Lcg64Xsh32::from_entropy(),
+        };
         for i in 0..cells.len() {
             let east_edge = (i + 1) % width == 0;
             let north_edge = i < width;
-            let choose_north = rand::random();
+            let choose_north = rng.gen();
 
             if !north_edge && (east_edge || choose_north) {
                 let chosen = rng.gen_range(run_start, i + 1);
@@ -104,8 +111,7 @@ impl Grid {
         }
     }
 
-    pub fn to_image(&self) -> GrayImage {
-        let cell_size = 10;
+    pub fn to_image(&self, cell_size: usize) -> GrayImage {        
         let image_width = cell_size * self.width + 1;
         let image_height = cell_size * self.height + 1;
 

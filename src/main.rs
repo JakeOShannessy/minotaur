@@ -23,15 +23,21 @@ struct Opt {
     #[structopt(short = "a", long = "algorithm", default_value = "BinaryTree", case_insensitive = true)]
     algorithm: Algorithm,
     /// Maze width in number of cells
-    #[structopt(short = "x", long = "width", default_value = "20")]
+    #[structopt(short = "x", long = "width", default_value = "5")]
     width: usize,
     /// Maze height in number of cells
-    #[structopt(short = "y", long = "height", default_value = "20")]
+    #[structopt(short = "y", long = "height", default_value = "5")]
     height: usize,
     /// Output file. Uses the file extension to determine whether to save an Ascii art image or a real image.
-    #[structopt(short = "o", long = "output", default_value = "/dev/stdout", case_insensitive = true
-    )]
+    #[structopt(short = "o", long = "output", default_value = "/dev/stdout", case_insensitive = true)]
     output: String,
+    /// Seed for random number generator
+    #[structopt(short = "s", long = "seed")]
+    seed: Option<u64>,
+    /// Cell size when saving to an image
+    #[structopt(long = "cell-size", default_value = "10")]
+    cell_size: usize,
+
 }
 
 fn main() -> std::io::Result<()> {
@@ -41,8 +47,8 @@ fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
 
     let grid = match opt.algorithm {
-        BinaryTree => Grid::binary_tree(opt.width, opt.height),
-        Sidewinder => Grid::sidewinder(opt.width, opt.height),
+        BinaryTree => Grid::binary_tree(opt.width, opt.height, opt.seed),
+        Sidewinder => Grid::sidewinder(opt.width, opt.height, opt.seed),
     };
 
     let filepath = Path::new(&opt.output);
@@ -54,7 +60,7 @@ fn main() -> std::io::Result<()> {
             file_writer.write_all(format!("{}", grid).as_bytes())?;
         }
         _ => {
-            let image = grid.to_image();
+            let image = grid.to_image(opt.cell_size);
             image.save(opt.output)?;
         }
     };
