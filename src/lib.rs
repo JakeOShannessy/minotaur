@@ -2,7 +2,7 @@
 extern crate bitflags;
 extern crate image;
 
-use image::{GrayImage, ImageBuffer};
+use image::{RgbImage, ImageBuffer};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
 
@@ -111,12 +111,9 @@ impl Grid {
         }
     }
 
-    pub fn to_image(&self, cell_size: usize) -> GrayImage {        
+    pub fn to_image(&self, cell_size: usize, wall_size: usize, background_pixel: image::Rgb<u8>, wall_pixel: image::Rgb<u8>) -> RgbImage {        
         let image_width = cell_size * self.width + 1;
         let image_height = cell_size * self.height + 1;
-
-        let background_pixel = image::Luma([255u8]);
-        let wall_pixel = image::Luma([0u8]);
 
         let mut image =
             ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
