@@ -32,14 +32,13 @@ Grid represents a maze.
 #[derive(Debug)]
 pub struct Grid {
     cells: Vec<Cell>,
-    perfect: bool,
     width: usize,
     height: usize,
 }
 
 impl Grid {
     // Must be at least 1x1
-    pub fn binary_tree(height: usize, width: usize, seed: Option<u64>) -> Grid {
+    pub fn binary_tree(width: usize, height: usize, seed: Option<u64>) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
 
         // For all cells in the northernmost row, there are no
@@ -65,17 +64,14 @@ impl Grid {
             }
         }
 
-        let perfect = true;
-
         Grid {
             cells,
-            perfect,
             width,
             height,
         }
     }
 
-    pub fn sidewinder(height: usize, width: usize, seed: Option<u64>) -> Grid {
+    pub fn sidewinder(width: usize, height: usize, seed: Option<u64>) -> Grid {
         let mut cells = vec![Cell::default(); height * width];
 
         let mut run_start = width;
@@ -101,11 +97,8 @@ impl Grid {
             }
         }
 
-        let perfect = true;
-
         Grid {
             cells,
-            perfect,
             width,
             height,
         }
@@ -200,5 +193,54 @@ impl std::fmt::Display for Grid {
         }
 
         write!(f, "{}", output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    // A perfect maze has 2n - 2 edges
+    fn maze_is_perfect(grid: &Grid) -> bool {
+        let mut edges = 0;
+        for cell in grid.cells.iter() {
+
+            if cell.contains(Cell::NORTH) {
+                edges += 1;
+            }
+
+            if cell.contains(Cell::SOUTH) {
+                edges += 1;
+            }
+
+            if cell.contains(Cell::EAST) {
+                edges += 1;
+            }
+
+            if cell.contains(Cell::WEST) {
+                edges += 1;
+            }
+        }
+
+        (2 * grid.height * grid.width - 2) == edges
+    }
+
+    #[test]
+    fn test_binary_tree() {
+        let width = 5_usize;
+        let height = 5_usize;
+        let grid = Grid::binary_tree(height, width, None);
+
+        assert!(maze_is_perfect(&grid));
+    }
+
+    #[test]
+    fn test_sidewinder() {
+        let width = 5_usize;
+        let height = 5_usize;
+        let grid = Grid::sidewinder(height, width, None);
+
+        assert!(maze_is_perfect(&grid));
     }
 }
