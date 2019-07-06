@@ -62,12 +62,12 @@ impl From<std::num::ParseIntError> for ParseHexError {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(rename_all = "kebab-case", global_settings = &[AppSettings::ColoredHelp])]
+#[structopt(rename_all = "kebab-case", raw(global_settings = "&[AppSettings::ColoredHelp]"))]
 struct Opt {
     /// Maze generating algorithm
     #[structopt(
         short = "a", long = "algorithm", default_value = "BinaryTree",
-        case_insensitive = true, possible_values = &Algorithm::variants(),
+        case_insensitive = true, raw(possible_values = "&Algorithm::variants()"),
         display_order = 0_usize)]
     algorithm: Algorithm,
     /// Maze width in number of cells
@@ -89,10 +89,10 @@ struct Opt {
     #[structopt(long = "wall-size", default_value = "1")]
     wall_size: usize,
     /// Background color when saving to an image file
-    #[structopt(long = "background-color", default_value = "#FFFFFF", parse(try_from_str = parse_hex_to_rgb))]
+    #[structopt(long = "background-color", default_value = "#FFFFFF", parse(try_from_str = "parse_hex_to_rgb"))]
     background_color: image::Rgb<u8>,
     /// Wall color when saving to an image file
-    #[structopt(long = "wall-color", default_value = "#000000", parse(try_from_str = parse_hex_to_rgb))]
+    #[structopt(long = "wall-color", default_value = "#000000", parse(try_from_str = "parse_hex_to_rgb"))]
     wall_color: image::Rgb<u8>,
 }
 
