@@ -15,6 +15,7 @@ arg_enum! {
     enum Algorithm {
         BinaryTree,
         Sidewinder,
+        AldousBroder,
     }
 }
 
@@ -68,7 +69,7 @@ struct Opt {
     #[structopt(
         short = "a",
         long = "algorithm",
-        default_value = "BinaryTree",
+        default_value = "AldousBroder",
         case_insensitive = true,
         raw(possible_values = "&Algorithm::variants()"),
         display_order = 0_usize
@@ -134,6 +135,7 @@ fn main() -> std::io::Result<()> {
         match opt.algorithm {
             BinaryTree => Grid::binary_tree(opt.width, opt.height, opt.seed),
             Sidewinder => Grid::sidewinder(opt.width, opt.height, opt.seed),
+            AldousBroder => Grid::aldous_broder(opt.width, opt.height, opt.seed),
         }
     };
 

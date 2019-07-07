@@ -44,5 +44,25 @@ mod bench {
                 minotaur::Grid::binary_tree(100, 100, None)
             });
         }
+
+        mod aldous_broder {
+            use super::*;
+
+            #[bench]
+            fn generate_10_x_10(b: &mut Bencher) {
+                b.iter(|| {
+                    // Note lack of `;` (could also use an explicit `return`).
+                    minotaur::Grid::aldous_broder(10, 10, None)
+                });
+            }
+
+            #[bench]
+            fn generate_100_x_100(b: &mut Bencher) {
+                b.iter(|| {
+                    // Note lack of `;` (could also use an explicit `return`).
+                    minotaur::Grid::aldous_broder(100, 100, None)
+                });
+            }
+        }
     }
 }

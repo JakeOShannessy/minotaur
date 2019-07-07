@@ -41,8 +41,8 @@ FLAGS:
 
 OPTIONS:
     -a, --algorithm <algorithm>
-            Maze generating algorithm [default: BinaryTree]  [possible values: BinaryTree,
-            Sidewinder]
+            Maze generating algorithm [default: AldousBroder]  [possible values: BinaryTree,
+            Sidewinder, AldousBroder]
     -x, --width <width>                          Maze width in number of cells [default: 5]
     -y, --height <height>                        Maze height in number of cells [default: 5]
         --background-color <background-color>    Background color when saving to an image file [default: #FFFFFF]
@@ -54,12 +54,13 @@ OPTIONS:
     -s, --seed <seed>                            Seed for random number generator
         --wall-color <wall-color>                Wall color when saving to an image file [default: #000000]
         --wall-size <wall-size>                  Wall size when saving to an image file [default: 1]
+./target/release/minotaur -h
 ```
 
 ## Examples
 
 ```bash
-./target/release/minotaur --seed 12345678
+./target/release/minotaur --seed 12345678 -a binarytree
 +---+---+---+---+---+
 |                   |
 +   +   +---+---+   +
@@ -74,23 +75,23 @@ OPTIONS:
 ```
 
 ```bash
-./target/release/minotaur --seed 12345678 -o examples/maze.png --cell-size 50 --wall-size 5
+./target/release/minotaur --seed 12345678 -o examples/maze.png --cell-size 50 --wall-size 5 -a binarytree
 ```
 ![Generated maze](examples/maze.png?raw=true "Generated Maze")
 
 ## Benchmarks
 
 ```
-$ cargo bench
-   Compiling minotaur v0.2.0 (/home/jonstites/Code/rust/minotaur)
-    Finished release [optimized] target(s) in 2.18s
+cargo +nightly bench
+    Finished release [optimized] target(s) in 0.02s
      Running target/release/deps/minotaur-7f054a3c582211a2
 
-running 2 tests
+running 3 tests
+test tests::test_aldous_broder ... ignored
 test tests::test_binary_tree ... ignored
 test tests::test_sidewinder ... ignored
 
-test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out
 
      Running target/release/deps/minotaur-409fa2e8229853a7
 
@@ -100,13 +101,15 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 
      Running target/release/deps/benches-7671d38865a46d79
 
-running 4 tests
-test bench::binary_tree::generate_100_x_100 ... bench:     110,879 ns/iter (+/- 3,735)
-test bench::binary_tree::generate_10_x_10   ... bench:       1,740 ns/iter (+/- 35)
-test bench::sidewinder::generate_100_x_100  ... bench:     166,913 ns/iter (+/- 1,214)
-test bench::sidewinder::generate_10_x_10    ... bench:       2,310 ns/iter (+/- 28)
+running 6 tests
+test bench::binary_tree::aldous_broder::generate_100_x_100 ... bench:   7,473,160 ns/iter (+/- 2,128,647)
+test bench::binary_tree::aldous_broder::generate_10_x_10   ... bench:      27,572 ns/iter (+/- 932)
+test bench::binary_tree::generate_100_x_100                ... bench:     111,265 ns/iter (+/- 3,934)
+test bench::binary_tree::generate_10_x_10                  ... bench:       1,738 ns/iter (+/- 38)
+test bench::sidewinder::generate_100_x_100                 ... bench:     167,290 ns/iter (+/- 3,507)
+test bench::sidewinder::generate_10_x_10                   ... bench:       2,312 ns/iter (+/- 35)
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 4 measured; 0 filtered out
+test result: ok. 0 passed; 0 failed; 0 ignored; 6 measured; 0 filtered out
 ```
 
 ## License

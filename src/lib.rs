@@ -5,6 +5,7 @@ extern crate bitflags;
 extern crate image;
 
 use image::{ImageBuffer, RgbImage};
+use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
 use serde::{Deserialize, Serialize};
@@ -97,6 +98,89 @@ impl Grid {
                 cells[i + 1] |= Cell::WEST;
             } else {
                 run_start = i + 1;
+            }
+        }
+
+        Grid {
+            cells,
+            width,
+            height,
+        }
+    }
+
+    pub fn aldous_broder(width: usize, height: usize, seed: Option<u64>) -> Grid {
+        let mut cells = vec![Cell::default(); height * width];
+
+        let mut rng = match seed {
+            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
+            None => Lcg64Xsh32::from_entropy(),
+        };
+
+        let mut num_visited = 1;
+        let mut visited = vec![false; cells.len()];
+        let mut current_cell = 0;
+        visited[0] = true;
+        let directions = [Cell::NORTH, Cell::SOUTH, Cell::EAST, Cell::WEST];
+
+        while num_visited < cells.len() {
+            // Hopefully this loop is short - only requires multiple samplings at borders of maze
+            loop {
+                match directions.choose(&mut rng) {
+                    // NORTH is valid only if we're not at the northern border
+                    Some(&Cell::NORTH) if current_cell >= width => {
+                        let next_cell = current_cell - width;
+                        if !visited[current_cell - width] {
+                            cells[current_cell] |= Cell::NORTH;
+                            cells[next_cell] |= Cell::SOUTH;
+                            visited[next_cell] = true;
+                            num_visited += 1;
+                        }
+
+                        current_cell = next_cell;
+                        break;
+                    }
+                    // SOUTH is valid only if we're not at the southern border
+                    Some(&Cell::SOUTH) if current_cell < cells.len() - width => {
+                        let next_cell = current_cell + width;
+                        if !visited[current_cell + width] {
+                            cells[current_cell] |= Cell::SOUTH;
+                            cells[next_cell] |= Cell::NORTH;
+                            visited[next_cell] = true;
+
+                            num_visited += 1;
+                        }
+
+                        current_cell = next_cell;
+                        break;
+                    }
+                    // EAST is valid only if we're not at the eastern border
+                    Some(&Cell::EAST) if (current_cell + 1) % width != 0 => {
+                        let next_cell = current_cell + 1;
+                        if !visited[current_cell + 1] {
+                            cells[current_cell] |= Cell::EAST;
+                            cells[next_cell] |= Cell::WEST;
+                            visited[next_cell] = true;
+                            num_visited += 1;
+                        }
+
+                        current_cell = next_cell;
+                        break;
+                    }
+                    // WEST is valid only if we're not at the western border
+                    Some(&Cell::WEST) if current_cell % width != 0 => {
+                        let next_cell = current_cell - 1;
+                        if !visited[current_cell - 1] {
+                            cells[current_cell] |= Cell::WEST;
+                            cells[next_cell] |= Cell::EAST;
+                            visited[next_cell] = true;
+                            num_visited += 1;
+                        }
+
+                        current_cell = next_cell;
+                        break;
+                    }
+                    _ => (),
+                };
             }
         }
 
@@ -248,6 +332,15 @@ mod tests {
         let width = 5_usize;
         let height = 5_usize;
         let grid = Grid::sidewinder(height, width, None);
+
+        assert!(maze_is_perfect(&grid));
+    }
+
+    #[test]
+    fn test_aldous_broder() {
+        let width = 5_usize;
+        let height = 5_usize;
+        let grid = Grid::aldous_broder(height, width, None);
 
         assert!(maze_is_perfect(&grid));
     }
