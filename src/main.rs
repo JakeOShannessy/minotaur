@@ -1,4 +1,4 @@
-#[deny(unsafe_code)]
+#![deny(unsafe_code)]
 
 extern crate structopt;
 
@@ -8,8 +8,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use structopt::clap::{arg_enum, AppSettings};
 use structopt::StructOpt;
-
-
+use bincode;
 
 arg_enum! {
     #[derive(Debug)]
@@ -20,7 +19,7 @@ arg_enum! {
 }
 
 fn parse_hex_to_rgb(src: &str) -> Result<image::Rgb<u8>, ParseHexError> {
-    let src = if src.starts_with("#") {
+    let src = if src.starts_with('#') {
         &src[1..]
     } else {
         src
@@ -76,9 +75,12 @@ struct Opt {
     /// Maze height in number of cells
     #[structopt(short = "y", long = "height", default_value = "5", display_order = 2_usize)]
     height: usize,
-    /// Output file. Can be ".png" for an image - otherwise, saves as ASCII art
-    #[structopt(short = "o", long = "output", default_value = "/dev/stdout", case_insensitive = true)]
+    /// Output file. Can be ".png" for an image, ".mz" to store the maze inself for later loading, otherwise, saves as ASCII art
+    #[structopt(short = "o", long = "output", default_value = "/dev/stdout")]
     output: String,
+    /// Input file of ".mz" stored from a previous run
+    #[structopt(short = "i", long = "input")]
+    input: Option<String>,
     /// Seed for random number generator
     #[structopt(short = "s", long = "seed")]
     seed: Option<u64>,
@@ -102,9 +104,14 @@ fn main() -> std::io::Result<()> {
 
     let opt = Opt::from_args();
 
-    let grid = match opt.algorithm {
-        BinaryTree => Grid::binary_tree(opt.width, opt.height, opt.seed),
-        Sidewinder => Grid::sidewinder(opt.width, opt.height, opt.seed),
+    let grid = if let Some(input) = opt.input {
+        let f = File::open(input)?;
+        bincode::deserialize_from(f).expect("Could not parse .mz file")
+    } else {
+        match opt.algorithm {
+            BinaryTree => Grid::binary_tree(opt.width, opt.height, opt.seed),
+            Sidewinder => Grid::sidewinder(opt.width, opt.height, opt.seed),
+        }
     };
 
     let filepath = Path::new(&opt.output);
@@ -114,6 +121,12 @@ fn main() -> std::io::Result<()> {
             let image = grid.to_image(opt.cell_size, opt.wall_size, opt.background_color, opt.wall_color);
             image.save(opt.output)?;
         },
+        Some("mz") => {
+            let encoded = bincode::serialize(&grid).unwrap();
+            let file = File::create(filepath)?;
+            let mut file_writer = BufWriter::new(file);
+            file_writer.write_all(&encoded)?;
+        }
         _ => {
             let file = File::create(filepath)?;
             let mut file_writer = BufWriter::new(file);

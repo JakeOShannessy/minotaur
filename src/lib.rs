@@ -5,6 +5,7 @@ extern crate image;
 use image::{RgbImage, ImageBuffer};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
+use serde::{Serialize, Deserialize};
 
 /*
 Cell represents a single square in a maze's Grid.
@@ -17,7 +18,7 @@ It would be a logic error if this Cell had
 NORTH, but its northern neighbor did not have SOUTH.
 */
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Serialize, Deserialize,)]
     pub struct Cell: u8 {
         const NORTH = 0b0001;
         const SOUTH = 0b0010;
@@ -29,7 +30,7 @@ bitflags! {
 /*
 Grid represents a maze.
 */
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Grid {
     cells: Vec<Cell>,
     width: usize,
