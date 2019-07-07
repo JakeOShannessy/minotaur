@@ -1,11 +1,13 @@
+#![deny(unsafe_code)]
+
 #[macro_use]
 extern crate bitflags;
 extern crate image;
 
-use image::{RgbImage, ImageBuffer};
+use image::{ImageBuffer, RgbImage};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /*
 Cell represents a single square in a maze's Grid.
@@ -105,7 +107,13 @@ impl Grid {
         }
     }
 
-    pub fn to_image(&self, cell_size: usize, wall_size: usize, background_pixel: image::Rgb<u8>, wall_pixel: image::Rgb<u8>) -> RgbImage {        
+    pub fn to_image(
+        &self,
+        cell_size: usize,
+        wall_size: usize,
+        background_pixel: image::Rgb<u8>,
+        wall_pixel: image::Rgb<u8>,
+    ) -> RgbImage {
         let image_width = cell_size * self.width + wall_size;
         let image_height = cell_size * self.height + wall_size;
 
@@ -206,7 +214,6 @@ mod tests {
     fn maze_is_perfect(grid: &Grid) -> bool {
         let mut edges = 0;
         for cell in grid.cells.iter() {
-
             if cell.contains(Cell::NORTH) {
                 edges += 1;
             }

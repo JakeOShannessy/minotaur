@@ -27,6 +27,7 @@ minotaur 0.2.0
 ## Usage
 
 ```
+./target/release/minotaur -h
 minotaur 0.2.0
 Jonathan Stites <mail@jonstites.com>
 A command-line program for generating mazes.
@@ -46,9 +47,10 @@ OPTIONS:
     -y, --height <height>                        Maze height in number of cells [default: 5]
         --background-color <background-color>    Background color when saving to an image file [default: #FFFFFF]
         --cell-size <cell-size>                  Cell size when saving to an image file [default: 10]
+    -i, --input <input>                          Input file of ".mz" stored from a previous run
     -o, --output <output>
-            Output file. Can be ".png" for an image - otherwise, saves as ASCII art [default: /dev/stdout]
-
+            Output file. Can be ".png" for an image, ".mz" to store the maze inself for later loading, otherwise, saves
+            as ASCII art [default: /dev/stdout]
     -s, --seed <seed>                            Seed for random number generator
         --wall-color <wall-color>                Wall color when saving to an image file [default: #000000]
         --wall-size <wall-size>                  Wall size when saving to an image file [default: 1]
@@ -75,6 +77,37 @@ OPTIONS:
 ./target/release/minotaur --seed 12345678 -o examples/maze.png --cell-size 50 --wall-size 5
 ```
 ![Generated maze](examples/maze.png?raw=true "Generated Maze")
+
+## Benchmarks
+
+```
+$ cargo bench
+   Compiling minotaur v0.2.0 (/home/jonstites/Code/rust/minotaur)
+    Finished release [optimized] target(s) in 2.18s
+     Running target/release/deps/minotaur-7f054a3c582211a2
+
+running 2 tests
+test tests::test_binary_tree ... ignored
+test tests::test_sidewinder ... ignored
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out
+
+     Running target/release/deps/minotaur-409fa2e8229853a7
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+     Running target/release/deps/benches-7671d38865a46d79
+
+running 4 tests
+test bench::binary_tree::generate_100_x_100 ... bench:     110,879 ns/iter (+/- 3,735)
+test bench::binary_tree::generate_10_x_10   ... bench:       1,740 ns/iter (+/- 35)
+test bench::sidewinder::generate_100_x_100  ... bench:     166,913 ns/iter (+/- 1,214)
+test bench::sidewinder::generate_10_x_10    ... bench:       2,310 ns/iter (+/- 28)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 4 measured; 0 filtered out
+```
 
 ## License
 
