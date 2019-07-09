@@ -10,6 +10,8 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
 use serde::{Deserialize, Serialize};
 
+use std::collections::{HashMap, HashSet};
+
 /*
 Cell represents a single square in a maze's Grid.
 It stores links in the four directions.
@@ -21,7 +23,7 @@ It would be a logic error if this Cell had
 NORTH, but its northern neighbor did not have SOUTH.
 */
 bitflags! {
-    #[derive(Default, Serialize, Deserialize,)]
+    #[derive(Default, Serialize, Deserialize)]
     pub struct Cell: u8 {
         const NORTH = 0b0001;
         const SOUTH = 0b0010;
@@ -41,33 +43,8 @@ pub struct Grid {
 }
 
 impl Grid {
-    // Must be at least 1x1
-    pub fn binary_tree(width: usize, height: usize, seed: Option<u64>) -> Grid {
-        let mut cells = vec![Cell::default(); height * width];
-
-        // For all cells in the northernmost row, there are no
-        // northern neighbors. So link with eastern neighbor,
-        // except the corner, which has neither a northern nor
-        // eastern neighbor.
-        let mut rng = match seed {
-            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
-            None => Lcg64Xsh32::from_entropy(),
-        };
-
-        for i in 0..cells.len() {
-            let east_edge = (i + 1) % width == 0;
-            let north_edge = i < width;
-            let choose_north = rng.gen();
-
-            if !north_edge && (east_edge || choose_north) {
-                cells[i] |= Cell::NORTH;
-                cells[i - width] |= Cell::SOUTH;
-            } else if !east_edge {
-                cells[i] |= Cell::EAST;
-                cells[i + 1] |= Cell::WEST;
-            }
-        }
-
+    pub fn new(width: usize, height: usize) -> Grid {
+        let cells = vec![Cell::default(); height * width];
         Grid {
             cells,
             width,
@@ -75,119 +52,215 @@ impl Grid {
         }
     }
 
-    pub fn sidewinder(width: usize, height: usize, seed: Option<u64>) -> Grid {
-        let mut cells = vec![Cell::default(); height * width];
-
-        let mut run_start = width;
-        let mut rng = match seed {
+    fn get_rng(seed: Option<u64>) -> Lcg64Xsh32 {
+        match seed {
             Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
             None => Lcg64Xsh32::from_entropy(),
-        };
-        for i in 0..cells.len() {
-            let east_edge = (i + 1) % width == 0;
-            let north_edge = i < width;
-            let choose_north = rng.gen();
+        }
+    }
 
-            if !north_edge && (east_edge || choose_north) {
-                let chosen = rng.gen_range(run_start, i + 1);
-                cells[chosen] |= Cell::NORTH;
-                cells[chosen - width] |= Cell::SOUTH;
+    fn link_cells(&mut self, i: usize, direction: Cell) {
+        match direction {
+            Cell::NORTH => {
+                self.cells[i] |= Cell::NORTH;
+                self.cells[i - self.width] |= Cell::SOUTH;
+            }
+
+            Cell::SOUTH => {
+                self.cells[i] |= Cell::SOUTH;
+                self.cells[i + self.width] |= Cell::NORTH;
+            }
+            Cell::EAST => {
+                self.cells[i] |= Cell::EAST;
+                self.cells[i + 1] |= Cell::WEST;
+            }
+            Cell::WEST => {
+                self.cells[i] |= Cell::WEST;
+                self.cells[i - 1] |= Cell::EAST;
+            }
+            _ => panic!(),
+        };
+    }
+
+    fn valid_direction(&self, i: usize, direction: Cell) -> bool {
+        match direction {
+            Cell::NORTH => i >= self.width,
+            Cell::SOUTH => i + self.width < self.cells.len(),
+            Cell::EAST => (i + 1) % self.width != 0,
+            Cell::WEST => i % self.width != 0,
+            _ => false,
+        }
+    }
+
+    fn neighbor(&self, i: usize, direction: Cell) -> usize {
+        match direction {
+            Cell::NORTH => i - self.width,
+            Cell::SOUTH => i + self.width,
+            Cell::EAST => i + 1,
+            Cell::WEST => i - 1,
+            _ => panic!(),
+        }
+    }
+
+    /// binary_tree populates the maze according to the following algorithm:
+    /// Arbitrarily visit every cell, choosing NORTH or EAST as follows:    
+    ///
+    /// If both NORTH and EAST are valid, choose one direction randomly
+    /// If only NORTH is valid, choose it 100% of the time
+    /// If only EAST is valid, choose it 100% of the time
+    ///
+    /// After choosing a direction, link this cell with its neighbor in that direction
+    ///
+    /// The only cell that will not have a valid direction to choose from is the northeastern corner.
+    pub fn binary_tree(&mut self, seed: Option<u64>) {
+        self.cells = vec![Cell::default(); self.height * self.width];
+        let mut rng = Grid::get_rng(seed);
+
+        for i in 0..self.cells.len() {
+            let north_valid = self.valid_direction(i, Cell::NORTH);
+            let east_valid = self.valid_direction(i, Cell::EAST);
+
+            if north_valid && (!east_valid || rng.gen()) {
+                self.link_cells(i, Cell::NORTH);
+            } else if east_valid {
+                self.link_cells(i, Cell::EAST);
+            }
+        }
+    }
+
+    /// sidewinder populates the maze according to the following algorithm:
+    /// Start with a cell on the western column. This cell starts a local "run."
+    ///
+    /// Choose NORTH or EAST as follows:
+    /// If both NORTH and EAST are valid, choose one direction randomly
+    /// If only NORTH is valid, choose it 100% of the time
+    /// If only EAST is valid, choose it 100% of the time
+    ///
+    /// After choosing a direction, if EAST was chosen, link this cell with its neighbor in that direction.
+    /// The EASTERN neighbor is then added to the local run and a direction is chosen for it.
+    /// But if NORTH was chosen, then select at random one of the cells from the local run and link
+    /// it with its NORTHERN neighbor. The local run is reset. Continue from the EASTERN neighbor.
+    pub fn sidewinder(&mut self, seed: Option<u64>) {
+        self.cells = vec![Cell::default(); self.height * self.width];
+        let mut rng = Grid::get_rng(seed);
+
+        // We start on the Western cell on the second row - this is the first cell that can
+        // be a valid "NORTH"
+        let mut run_start = self.width;
+
+        for i in 0..self.cells.len() {
+            let north_valid = self.valid_direction(i, Cell::NORTH);
+            let east_valid = self.valid_direction(i, Cell::EAST);
+
+            if north_valid && (!east_valid || rng.gen()) {
+                let chosen_cell = rng.gen_range(run_start, i + 1);
+                self.link_cells(chosen_cell, Cell::NORTH);
+                // Run resets
                 run_start = i + 1;
-            } else if !east_edge {
-                cells[i] |= Cell::EAST;
-                cells[i + 1] |= Cell::WEST;
+            } else if east_valid {
+                self.link_cells(i, Cell::EAST);
             } else {
                 run_start = i + 1;
             }
         }
+    }
 
-        Grid {
-            cells,
-            width,
-            height,
+    /// aldous_broder populates a maze in an unbiased way.
+    /// Basically, first, a cell is chosen at random and considered "visited."
+    /// Travel in a random direction. If the next cell is "unvisited", then
+    /// link the two cells. Continue until all cells have been visited.
+    pub fn aldous_broder(&mut self, seed: Option<u64>) {
+        self.cells = vec![Cell::default(); self.height * self.width];
+        let mut rng = Grid::get_rng(seed);
+        const DIRECTIONS: [Cell; 4] = [Cell::NORTH, Cell::SOUTH, Cell::EAST, Cell::WEST];
+
+        // Keep track of all visited cells.
+        let mut visited = vec![false; self.cells.len()];
+
+        // Starting cell must be chosen at random.
+        let mut current_cell = rng.gen_range(0, self.cells.len());
+        visited[current_cell] = true;
+        let mut num_visited = 1;
+
+        while num_visited < self.cells.len() {
+            // Loop until we've found a valid direction - only an issue at the maze borders
+            let mut direction = Cell::default();
+            while !self.valid_direction(current_cell, direction) {
+                direction = *DIRECTIONS.choose(&mut rng).unwrap();
+            }
+
+            let next_cell = self.neighbor(current_cell, direction);
+
+            // If we haven't visited yet, link the cells up.
+            // Either way, keep random walking from here
+            if !visited[next_cell] {
+                self.link_cells(current_cell, direction);
+                visited[next_cell] = true;
+                num_visited += 1;
+            }
+            current_cell = next_cell;
         }
     }
 
-    pub fn aldous_broder(width: usize, height: usize, seed: Option<u64>) -> Grid {
-        let mut cells = vec![Cell::default(); height * width];
+    /// wilsons populates a maze in an unbiased way.
+    /// First, some random cell is set to be "visited."
+    /// Then, some other random cell is "started." From there,
+    /// travel randomly until you hit a "visited" cell. Once you
+    /// hit a "visited" cell, connect all the links from the "started"
+    /// cell. Then start over, choosing a new "unvisited" cell.
+    ///
+    /// The trick is that there is a "loop removal" step. So while looking
+    /// for a "visited" cell, if you loop back to a cell you've travelling through
+    /// this run, then remove the loop you just made.
+    pub fn wilsons(&mut self, seed: Option<u64>) {
+        self.cells = vec![Cell::default(); self.height * self.width];
+        let mut rng = Grid::get_rng(seed);
+        const DIRECTIONS: [Cell; 4] = [Cell::NORTH, Cell::SOUTH, Cell::EAST, Cell::WEST];
 
-        let mut rng = match seed {
-            Some(seed) => Lcg64Xsh32::seed_from_u64(seed),
-            None => Lcg64Xsh32::from_entropy(),
-        };
-
-        let mut num_visited = 1;
-        let mut visited = vec![false; cells.len()];
-        let mut current_cell = 0;
-        visited[0] = true;
-        let directions = [Cell::NORTH, Cell::SOUTH, Cell::EAST, Cell::WEST];
-
-        while num_visited < cells.len() {
-            // Hopefully this loop is short - only requires multiple samplings at borders of maze
-            loop {
-                match directions.choose(&mut rng) {
-                    // NORTH is valid only if we're not at the northern border
-                    Some(&Cell::NORTH) if current_cell >= width => {
-                        let next_cell = current_cell - width;
-                        if !visited[current_cell - width] {
-                            cells[current_cell] |= Cell::NORTH;
-                            cells[next_cell] |= Cell::SOUTH;
-                            visited[next_cell] = true;
-                            num_visited += 1;
-                        }
-
-                        current_cell = next_cell;
-                        break;
-                    }
-                    // SOUTH is valid only if we're not at the southern border
-                    Some(&Cell::SOUTH) if current_cell < cells.len() - width => {
-                        let next_cell = current_cell + width;
-                        if !visited[current_cell + width] {
-                            cells[current_cell] |= Cell::SOUTH;
-                            cells[next_cell] |= Cell::NORTH;
-                            visited[next_cell] = true;
-
-                            num_visited += 1;
-                        }
-
-                        current_cell = next_cell;
-                        break;
-                    }
-                    // EAST is valid only if we're not at the eastern border
-                    Some(&Cell::EAST) if (current_cell + 1) % width != 0 => {
-                        let next_cell = current_cell + 1;
-                        if !visited[current_cell + 1] {
-                            cells[current_cell] |= Cell::EAST;
-                            cells[next_cell] |= Cell::WEST;
-                            visited[next_cell] = true;
-                            num_visited += 1;
-                        }
-
-                        current_cell = next_cell;
-                        break;
-                    }
-                    // WEST is valid only if we're not at the western border
-                    Some(&Cell::WEST) if current_cell % width != 0 => {
-                        let next_cell = current_cell - 1;
-                        if !visited[current_cell - 1] {
-                            cells[current_cell] |= Cell::WEST;
-                            cells[next_cell] |= Cell::EAST;
-                            visited[next_cell] = true;
-                            num_visited += 1;
-                        }
-
-                        current_cell = next_cell;
-                        break;
-                    }
-                    _ => (),
-                };
-            }
+        // Keep track of all unvisited cells.
+        let mut unvisited = HashSet::new();
+        for i in 0..self.cells.len() {
+            unvisited.insert(i);
         }
 
-        Grid {
-            cells,
-            width,
-            height,
+        // Randomly set a single cell to be visited
+        let initial: usize = rng.gen_range(0, self.cells.len());
+        unvisited.remove(&initial);
+
+        let mut unvisited_to_choose_from = unvisited.clone().into_iter().collect::<Vec<usize>>();
+
+        while !unvisited.is_empty() {
+            // Performance optimization heuristic
+            if unvisited.len() * unvisited.len() < unvisited_to_choose_from.len() {
+                unvisited_to_choose_from = unvisited.clone().into_iter().collect::<Vec<usize>>();
+            }
+
+            let mut path_init = *unvisited_to_choose_from[..].choose(&mut rng).unwrap();
+            while !unvisited.contains(&path_init) {
+                path_init = *unvisited_to_choose_from[..].choose(&mut rng).unwrap();
+            }
+
+            let mut current_cell = path_init;
+            let mut path = HashMap::new();
+
+            // Loop until we have finally reached a cell that's already visited.
+            while unvisited.contains(&current_cell) {
+                // Loop until we've found a valid direction - only an issue at the maze borders
+                let mut direction = Cell::default();
+                while !self.valid_direction(current_cell, direction) {
+                    direction = *DIRECTIONS.choose(&mut rng).unwrap();
+                }
+                path.insert(current_cell, direction);
+                current_cell = self.neighbor(current_cell, direction);
+            }
+
+            current_cell = path_init;
+            while unvisited.contains(&current_cell) {
+                let direction = *path.get(&current_cell).unwrap();
+                unvisited.remove(&current_cell);
+                self.link_cells(current_cell, direction);
+                current_cell = self.neighbor(current_cell, direction);
+            }
         }
     }
 
@@ -293,6 +366,7 @@ impl std::fmt::Display for Grid {
 mod tests {
 
     use super::*;
+    use std::collections::{HashMap, HashSet};
 
     // A perfect maze has 2n - 2 edges
     fn maze_is_perfect(grid: &Grid) -> bool {
@@ -322,7 +396,8 @@ mod tests {
     fn test_binary_tree() {
         let width = 5_usize;
         let height = 5_usize;
-        let grid = Grid::binary_tree(height, width, None);
+        let mut grid = Grid::new(height, width);
+        grid.binary_tree(None);
 
         assert!(maze_is_perfect(&grid));
     }
@@ -331,7 +406,8 @@ mod tests {
     fn test_sidewinder() {
         let width = 5_usize;
         let height = 5_usize;
-        let grid = Grid::sidewinder(height, width, None);
+        let mut grid = Grid::new(height, width);
+        grid.sidewinder(None);
 
         assert!(maze_is_perfect(&grid));
     }
@@ -340,8 +416,47 @@ mod tests {
     fn test_aldous_broder() {
         let width = 5_usize;
         let height = 5_usize;
-        let grid = Grid::aldous_broder(height, width, None);
+        let mut grid = Grid::new(height, width);
+        grid.aldous_broder(None);
 
         assert!(maze_is_perfect(&grid));
+    }
+
+    #[test]
+    fn test_aldous_broder_all_mazes() {
+        let width = 3_usize;
+        let height = 3_usize;
+        let mut grid = Grid::new(height, width);
+
+        let mut mazes = HashSet::new();
+        for _i in 0..100000 {
+            grid.aldous_broder(None);
+            mazes.insert(format!("{}", grid));
+        }
+        assert_eq!(192_usize, mazes.len());
+    }
+
+    #[test]
+    fn test_wilsons() {
+        let width = 5_usize;
+        let height = 5_usize;
+        let mut grid = Grid::new(height, width);
+        grid.wilsons(None);
+
+        assert!(maze_is_perfect(&grid));
+    }
+
+    #[test]
+    fn test_wilsons_all_mazes() {
+        let width = 3_usize;
+        let height = 3_usize;
+        let mut grid = Grid::new(height, width);
+
+        let mut mazes = HashSet::new();
+        for _i in 0..100000 {
+            grid.wilsons(None);
+            mazes.insert(format!("{}", grid));
+        }
+        assert_eq!(192_usize, mazes.len());
     }
 }

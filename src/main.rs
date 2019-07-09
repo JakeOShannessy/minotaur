@@ -16,6 +16,7 @@ arg_enum! {
         BinaryTree,
         Sidewinder,
         AldousBroder,
+        Wilsons,
     }
 }
 
@@ -133,9 +134,26 @@ fn main() -> std::io::Result<()> {
         bincode::deserialize_from(f).expect("Could not parse .mz file")
     } else {
         match opt.algorithm {
-            BinaryTree => Grid::binary_tree(opt.width, opt.height, opt.seed),
-            Sidewinder => Grid::sidewinder(opt.width, opt.height, opt.seed),
-            AldousBroder => Grid::aldous_broder(opt.width, opt.height, opt.seed),
+            BinaryTree => {
+                let mut grid = Grid::new(opt.width, opt.height);
+                grid.binary_tree(opt.seed);
+                grid
+            }
+            Sidewinder => {
+                let mut grid = Grid::new(opt.width, opt.height);
+                grid.sidewinder(opt.seed);
+                grid
+            }
+            AldousBroder => {
+                let mut grid = Grid::new(opt.width, opt.height);
+                grid.aldous_broder(opt.seed);
+                grid
+            }
+            Wilsons => {
+                let mut grid = Grid::new(opt.width, opt.height);
+                grid.wilsons(opt.seed);
+                grid
+            }
         }
     };
 

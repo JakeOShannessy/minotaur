@@ -12,16 +12,16 @@ mod bench {
         #[bench]
         fn generate_10_x_10(b: &mut Bencher) {
             b.iter(|| {
-                // Note lack of `;` (could also use an explicit `return`).
-                minotaur::Grid::sidewinder(10, 10, None)
+                let mut grid = minotaur::Grid::new(10, 10);
+                grid.sidewinder(None)
             });
         }
 
         #[bench]
         fn generate_100_x_100(b: &mut Bencher) {
             b.iter(|| {
-                // Note lack of `;` (could also use an explicit `return`).
-                minotaur::Grid::sidewinder(100, 100, None)
+                let mut grid = minotaur::Grid::new(100, 100);
+                grid.sidewinder(None)
             });
         }
     }
@@ -32,37 +32,57 @@ mod bench {
         #[bench]
         fn generate_10_x_10(b: &mut Bencher) {
             b.iter(|| {
-                // Note lack of `;` (could also use an explicit `return`).
-                minotaur::Grid::binary_tree(10, 10, None)
+                let mut grid = minotaur::Grid::new(10, 10);
+                grid.binary_tree(None)
             });
         }
 
         #[bench]
         fn generate_100_x_100(b: &mut Bencher) {
             b.iter(|| {
-                // Note lack of `;` (could also use an explicit `return`).
-                minotaur::Grid::binary_tree(100, 100, None)
+                let mut grid = minotaur::Grid::new(100, 100);
+                grid.binary_tree(None)
+            });
+        }
+    }
+
+    mod aldous_broder {
+        use super::*;
+
+        #[bench]
+        fn generate_10_x_10(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(10, 10);
+                grid.aldous_broder(None)
             });
         }
 
-        mod aldous_broder {
-            use super::*;
+        #[bench]
+        fn generate_100_x_100(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(100, 100);
+                grid.aldous_broder(None)
+            });
+        }
+    }
 
-            #[bench]
-            fn generate_10_x_10(b: &mut Bencher) {
-                b.iter(|| {
-                    // Note lack of `;` (could also use an explicit `return`).
-                    minotaur::Grid::aldous_broder(10, 10, None)
-                });
-            }
+    mod wilsons {
+        use super::*;
 
-            #[bench]
-            fn generate_100_x_100(b: &mut Bencher) {
-                b.iter(|| {
-                    // Note lack of `;` (could also use an explicit `return`).
-                    minotaur::Grid::aldous_broder(100, 100, None)
-                });
-            }
+        #[bench]
+        fn generate_10_x_10(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(10, 10);
+                grid.wilsons(None)
+            });
+        }
+
+        #[bench]
+        fn generate_100_x_100(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(100, 100);
+                grid.wilsons(None)
+            });
         }
     }
 }
