@@ -85,4 +85,24 @@ mod bench {
             });
         }
     }
+
+    mod hunt_and_kill {
+        use super::*;
+
+        #[bench]
+        fn generate_10_x_10(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(10, 10);
+                grid.hunt_and_kill(None)
+            });
+        }
+
+        #[bench]
+        fn generate_100_x_100(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(100, 100);
+                grid.hunt_and_kill(None)
+            });
+        }
+    }
 }

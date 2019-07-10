@@ -17,6 +17,7 @@ arg_enum! {
         Sidewinder,
         AldousBroder,
         Wilsons,
+        HuntAndKill,
     }
 }
 
@@ -152,6 +153,11 @@ fn main() -> std::io::Result<()> {
             Wilsons => {
                 let mut grid = Grid::new(opt.width, opt.height);
                 grid.wilsons(opt.seed);
+                grid
+            }
+            HuntAndKill => {
+                let mut grid = Grid::new(opt.width, opt.height);
+                grid.hunt_and_kill(opt.seed);
                 grid
             }
         }

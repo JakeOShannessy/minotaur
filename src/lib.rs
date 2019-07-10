@@ -10,6 +10,8 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
 use serde::{Deserialize, Serialize};
 
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::collections::{HashMap, HashSet};
 
 /*
@@ -264,6 +266,64 @@ impl Grid {
         }
     }
 
+    pub fn hunt_and_kill(&mut self, seed: Option<u64>) {
+        self.cells = vec![Cell::default(); self.height * self.width];
+        let mut rng = Grid::get_rng(seed);
+        const DIRECTIONS: [Cell; 4] = [Cell::NORTH, Cell::SOUTH, Cell::EAST, Cell::WEST];
+
+        // Keep track of all visited cells.
+        let mut visited_cells = HashSet::new();
+
+        // Randomly set a single cell to be visited
+        let mut current_cell: usize = rng.gen_range(0, self.cells.len());
+        visited_cells.insert(current_cell);
+        // Optimization: maintain frontier of possible cells that are
+        // potentially adjacent to a visited cell
+        let mut frontier = BinaryHeap::new();
+        frontier.push(Reverse(current_cell));
+
+        while !frontier.is_empty() {
+            // Loop until we boxed ourselves in with visited cells
+            loop {
+                let mut directions = Vec::new();
+                for direction in DIRECTIONS.iter() {
+                    if self.valid_direction(current_cell, *direction) {
+                        let neighbor = self.neighbor(current_cell, *direction);
+                        if !visited_cells.contains(&neighbor) {
+                            directions.push(*direction);
+                            frontier.push(Reverse(neighbor));
+                        }
+                    }
+                }
+                if let Some(direction) = directions[..].choose(&mut rng) {
+                    self.link_cells(current_cell, *direction);
+                    current_cell = self.neighbor(current_cell, *direction);
+                    visited_cells.insert(current_cell);
+                } else {
+                    break;
+                }
+            }
+            // Boxed in! Time to iterate through maze and select first unvisited cell that borders
+            // a visited cell
+            while visited_cells.contains(&current_cell) && !frontier.is_empty() {
+                current_cell = frontier.pop().unwrap().0;
+            }
+
+            // Now link it with the adjacent cell
+            visited_cells.insert(current_cell);
+            for direction in DIRECTIONS.iter() {
+                if self.valid_direction(current_cell, *direction) {
+                    let neighbor = self.neighbor(current_cell, *direction);
+                    // Found the adjacent visited cell!
+                    if visited_cells.contains(&neighbor) {
+                        self.link_cells(current_cell, *direction);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     pub fn to_image(
         &self,
         cell_size: usize,
@@ -366,7 +426,7 @@ impl std::fmt::Display for Grid {
 mod tests {
 
     use super::*;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashSet;
 
     // A perfect maze has 2n - 2 edges
     fn maze_is_perfect(grid: &Grid) -> bool {
@@ -394,8 +454,8 @@ mod tests {
 
     #[test]
     fn test_binary_tree() {
-        let width = 5_usize;
-        let height = 5_usize;
+        let width = 50_usize;
+        let height = 50_usize;
         let mut grid = Grid::new(height, width);
         grid.binary_tree(None);
 
@@ -404,8 +464,8 @@ mod tests {
 
     #[test]
     fn test_sidewinder() {
-        let width = 5_usize;
-        let height = 5_usize;
+        let width = 50_usize;
+        let height = 50_usize;
         let mut grid = Grid::new(height, width);
         grid.sidewinder(None);
 
@@ -414,8 +474,8 @@ mod tests {
 
     #[test]
     fn test_aldous_broder() {
-        let width = 5_usize;
-        let height = 5_usize;
+        let width = 50_usize;
+        let height = 50_usize;
         let mut grid = Grid::new(height, width);
         grid.aldous_broder(None);
 
@@ -438,8 +498,8 @@ mod tests {
 
     #[test]
     fn test_wilsons() {
-        let width = 5_usize;
-        let height = 5_usize;
+        let width = 50_usize;
+        let height = 50_usize;
         let mut grid = Grid::new(height, width);
         grid.wilsons(None);
 
@@ -458,5 +518,15 @@ mod tests {
             mazes.insert(format!("{}", grid));
         }
         assert_eq!(192_usize, mazes.len());
+    }
+
+    #[test]
+    fn test_hunt_and_kill() {
+        let width = 50_usize;
+        let height = 50_usize;
+        let mut grid = Grid::new(height, width);
+        grid.hunt_and_kill(None);
+
+        assert!(maze_is_perfect(&grid));
     }
 }
