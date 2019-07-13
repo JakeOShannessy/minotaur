@@ -18,6 +18,7 @@ arg_enum! {
         AldousBroder,
         Wilsons,
         HuntAndKill,
+        RecursiveBacktracker,
     }
 }
 
@@ -158,6 +159,11 @@ fn main() -> std::io::Result<()> {
             HuntAndKill => {
                 let mut grid = Grid::new(opt.width, opt.height);
                 grid.hunt_and_kill(opt.seed);
+                grid
+            }
+            RecursiveBacktracker => {
+                let mut grid = Grid::new(opt.width, opt.height);
+                grid.recursive_backtracker(opt.seed);
                 grid
             }
         }

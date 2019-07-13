@@ -105,4 +105,24 @@ mod bench {
             });
         }
     }
+
+    mod recursive_backtracker {
+        use super::*;
+
+        #[bench]
+        fn generate_10_x_10(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(10, 10);
+                grid.recursive_backtracker(None)
+            });
+        }
+
+        #[bench]
+        fn generate_100_x_100(b: &mut Bencher) {
+            b.iter(|| {
+                let mut grid = minotaur::Grid::new(100, 100);
+                grid.recursive_backtracker(None)
+            });
+        }
+    }
 }

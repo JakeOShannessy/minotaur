@@ -309,6 +309,9 @@ impl Grid {
                 current_cell = frontier.pop().unwrap().0;
             }
 
+            if frontier.is_empty() {
+                break;
+            }
             // Now link it with the adjacent cell
             visited_cells.insert(current_cell);
             for direction in DIRECTIONS.iter() {
@@ -318,6 +321,64 @@ impl Grid {
                     if visited_cells.contains(&neighbor) {
                         self.link_cells(current_cell, *direction);
                         break;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn recursive_backtracker(&mut self, seed: Option<u64>) {
+        self.cells = vec![Cell::default(); self.height * self.width];
+        let mut rng = Grid::get_rng(seed);
+        const DIRECTIONS: [Cell; 4] = [Cell::NORTH, Cell::SOUTH, Cell::EAST, Cell::WEST];
+
+        // Keep track of all visited cells.
+        let mut visited_cells = HashSet::new();
+
+        // Randomly set a single cell to be visited
+        let mut current_cell: usize = rng.gen_range(0, self.cells.len());
+        visited_cells.insert(current_cell);
+        // Stack of visited cells
+        let mut cell_stack = Vec::new();
+        cell_stack.push(current_cell);
+
+        while !cell_stack.is_empty() {
+            // Loop until we boxed ourselves in with visited cells
+            loop {
+                let mut directions = Vec::new();
+                for direction in DIRECTIONS.iter() {
+                    if self.valid_direction(current_cell, *direction) {
+                        let neighbor = self.neighbor(current_cell, *direction);
+                        if !visited_cells.contains(&neighbor) {
+                            directions.push(*direction);
+                        }
+                    }
+                }
+                if let Some(direction) = directions[..].choose(&mut rng) {
+                    self.link_cells(current_cell, *direction);
+                    current_cell = self.neighbor(current_cell, *direction);
+                    visited_cells.insert(current_cell);
+                    cell_stack.push(current_cell);
+                } else {
+                    break;
+                }
+            }
+            // Boxed in! Time to pop cells off the stack and find one that has
+            // an unvisited adjacent neighbor
+            'outer: while let Some(next_cell) = cell_stack.pop() {
+                current_cell = next_cell;
+                // break if adjacent unvisited neighbor
+                for direction in DIRECTIONS.iter() {
+                    if self.valid_direction(current_cell, *direction) {
+                        let neighbor = self.neighbor(current_cell, *direction);
+                        // Found the adjacent unvisited cell!
+                        if !visited_cells.contains(&neighbor) {
+                            self.link_cells(current_cell, *direction);
+                            current_cell = neighbor;
+                            visited_cells.insert(current_cell);
+                            cell_stack.push(current_cell);
+                            break 'outer;
+                        }
                     }
                 }
             }
@@ -448,7 +509,15 @@ mod tests {
                 edges += 1;
             }
         }
-
+        if (2 * grid.height * grid.width - 2) != edges {
+            println!("{}", grid);
+            println!(
+                "expect {:?} got {:?}",
+                2 * grid.height * grid.width - 2,
+                edges
+            );
+            println!("{:?} ", grid.cells)
+        }
         (2 * grid.height * grid.width - 2) == edges
     }
 
@@ -456,20 +525,24 @@ mod tests {
     fn test_binary_tree() {
         let width = 50_usize;
         let height = 50_usize;
-        let mut grid = Grid::new(height, width);
-        grid.binary_tree(None);
+        for _i in 0..10000 {
+            let mut grid = Grid::new(height, width);
+            grid.binary_tree(None);
 
-        assert!(maze_is_perfect(&grid));
+            assert!(maze_is_perfect(&grid));
+        }
     }
 
     #[test]
     fn test_sidewinder() {
         let width = 50_usize;
         let height = 50_usize;
-        let mut grid = Grid::new(height, width);
-        grid.sidewinder(None);
+        for _i in 0..10000 {
+            let mut grid = Grid::new(height, width);
+            grid.sidewinder(None);
 
-        assert!(maze_is_perfect(&grid));
+            assert!(maze_is_perfect(&grid));
+        }
     }
 
     #[test]
@@ -477,9 +550,12 @@ mod tests {
         let width = 50_usize;
         let height = 50_usize;
         let mut grid = Grid::new(height, width);
-        grid.aldous_broder(None);
 
-        assert!(maze_is_perfect(&grid));
+        for _i in 0..1000 {
+            grid.aldous_broder(None);
+
+            assert!(maze_is_perfect(&grid));
+        }
     }
 
     #[test]
@@ -501,9 +577,11 @@ mod tests {
         let width = 50_usize;
         let height = 50_usize;
         let mut grid = Grid::new(height, width);
-        grid.wilsons(None);
 
-        assert!(maze_is_perfect(&grid));
+        for _i in 0..1000 {
+            grid.wilsons(None);
+            assert!(maze_is_perfect(&grid));
+        }
     }
 
     #[test]
@@ -522,11 +600,26 @@ mod tests {
 
     #[test]
     fn test_hunt_and_kill() {
+        let width = 3_usize;
+        let height = 3_usize;
+        for _i in 0..10000 {
+            let mut grid = Grid::new(height, width);
+            grid.hunt_and_kill(None);
+
+            assert!(maze_is_perfect(&grid));
+        }
+    }
+
+    #[test]
+    fn test_recursive_backtracker() {
         let width = 50_usize;
         let height = 50_usize;
         let mut grid = Grid::new(height, width);
-        grid.hunt_and_kill(None);
 
-        assert!(maze_is_perfect(&grid));
+        for _i in 0..100 {
+            grid.recursive_backtracker(None);
+
+            assert!(maze_is_perfect(&grid));
+        }
     }
 }
