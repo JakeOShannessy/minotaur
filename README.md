@@ -27,7 +27,7 @@ minotaur 0.2.0
 ## Usage
 
 ```
-./target/release/minotaur -h
+./target/release/minotaur --help
 minotaur 0.2.0
 Jonathan Stites <mail@jonstites.com>
 A command-line program for generating mazes.
@@ -42,7 +42,7 @@ FLAGS:
 OPTIONS:
     -a, --algorithm <algorithm>
             Maze generating algorithm [default: AldousBroder]  [possible values: BinaryTree,
-            Sidewinder, AldousBroder]
+            Sidewinder, AldousBroder, Wilsons, HuntAndKill, RecursiveBacktracker]
     -x, --width <width>                          Maze width in number of cells [default: 5]
     -y, --height <height>                        Maze height in number of cells [default: 5]
         --background-color <background-color>    Background color when saving to an image file [default: #FFFFFF]
@@ -54,7 +54,6 @@ OPTIONS:
     -s, --seed <seed>                            Seed for random number generator
         --wall-color <wall-color>                Wall color when saving to an image file [default: #000000]
         --wall-size <wall-size>                  Wall size when saving to an image file [default: 1]
-./target/release/minotaur -h
 ```
 
 ## Examples
@@ -83,15 +82,21 @@ OPTIONS:
 
 ```
 cargo +nightly bench
-    Finished release [optimized] target(s) in 0.02s
+   Compiling minotaur v0.2.0 (/home/jonstites/Code/rust/minotaur)
+    Finished release [optimized] target(s) in 3.65s
      Running target/release/deps/minotaur-7f054a3c582211a2
 
-running 3 tests
+running 8 tests
 test tests::test_aldous_broder ... ignored
+test tests::test_aldous_broder_all_mazes ... ignored
 test tests::test_binary_tree ... ignored
+test tests::test_hunt_and_kill ... ignored
+test tests::test_recursive_backtracker ... ignored
 test tests::test_sidewinder ... ignored
+test tests::test_wilsons ... ignored
+test tests::test_wilsons_all_mazes ... ignored
 
-test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out
+test result: ok. 0 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out
 
      Running target/release/deps/minotaur-409fa2e8229853a7
 
@@ -101,15 +106,21 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 
      Running target/release/deps/benches-7671d38865a46d79
 
-running 6 tests
-test bench::binary_tree::aldous_broder::generate_100_x_100 ... bench:   7,473,160 ns/iter (+/- 2,128,647)
-test bench::binary_tree::aldous_broder::generate_10_x_10   ... bench:      27,572 ns/iter (+/- 932)
-test bench::binary_tree::generate_100_x_100                ... bench:     111,265 ns/iter (+/- 3,934)
-test bench::binary_tree::generate_10_x_10                  ... bench:       1,738 ns/iter (+/- 38)
-test bench::sidewinder::generate_100_x_100                 ... bench:     167,290 ns/iter (+/- 3,507)
-test bench::sidewinder::generate_10_x_10                   ... bench:       2,312 ns/iter (+/- 35)
+running 12 tests
+test bench::aldous_broder::generate_100_x_100         ... bench:   8,729,860 ns/iter (+/- 2,127,433)
+test bench::aldous_broder::generate_10_x_10           ... bench:      32,356 ns/iter (+/- 1,810)
+test bench::binary_tree::generate_100_x_100           ... bench:     127,001 ns/iter (+/- 5,049)
+test bench::binary_tree::generate_10_x_10             ... bench:       1,990 ns/iter (+/- 97)
+test bench::hunt_and_kill::generate_100_x_100         ... bench:   3,741,404 ns/iter (+/- 224,387)
+test bench::hunt_and_kill::generate_10_x_10           ... bench:      31,779 ns/iter (+/- 2,358)
+test bench::recursive_backtracker::generate_100_x_100 ... bench:   2,928,601 ns/iter (+/- 305,673)
+test bench::recursive_backtracker::generate_10_x_10   ... bench:      27,949 ns/iter (+/- 3,844)
+test bench::sidewinder::generate_100_x_100            ... bench:     186,256 ns/iter (+/- 17,789)
+test bench::sidewinder::generate_10_x_10              ... bench:       2,595 ns/iter (+/- 121)
+test bench::wilsons::generate_100_x_100               ... bench:   8,551,824 ns/iter (+/- 3,229,443)
+test bench::wilsons::generate_10_x_10                 ... bench:      57,559 ns/iter (+/- 3,439)
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 6 measured; 0 filtered out
+test result: ok. 0 passed; 0 failed; 0 ignored; 12 measured; 0 filtered out
 ```
 
 ## License
