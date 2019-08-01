@@ -21,14 +21,14 @@ $ git clone git@github.com:jonstites/minotaur
 $ cd minotaur
 $ cargo build --release
 $ ./target/release/minotaur --version
-minotaur 0.2.0
+minotaur 0.3.0
 ```
 
 ## Usage
 
 ```
 ./target/release/minotaur --help
-minotaur 0.2.0
+minotaur 0.3.0
 Jonathan Stites <mail@jonstites.com>
 A command-line program for generating mazes.
 
@@ -82,7 +82,7 @@ OPTIONS:
 
 ```
 cargo +nightly bench
-   Compiling minotaur v0.2.0 (/home/jonstites/Code/rust/minotaur)
+   Compiling minotaur v0.3.0 (/home/jonstites/Code/rust/minotaur)
     Finished release [optimized] target(s) in 3.65s
      Running target/release/deps/minotaur-7f054a3c582211a2
 

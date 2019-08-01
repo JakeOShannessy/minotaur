@@ -1,6 +1,6 @@
 [package]
 name = "minotaur"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Jonathan Stites <mail@jonstites.com>"]
 description = "A command-line program for generating mazes."
 edition = "2018"
