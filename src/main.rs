@@ -1,5 +1,7 @@
 #![deny(unsafe_code)]
 
+// WARP: for web server?
+
 extern crate structopt;
 
 use bincode;
