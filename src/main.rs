@@ -1,7 +1,7 @@
 #![deny(unsafe_code)]
 
 // WARP: for web server?
-
+/*
 extern crate structopt;
 
 use bincode;
@@ -197,4 +197,9 @@ fn main() -> std::io::Result<()> {
     };
 
     Ok(())
+}
+*/
+
+fn main() {
+    
 }
