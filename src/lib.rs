@@ -39,9 +39,9 @@ Grid represents a maze.
 */
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Grid {
-    cells: Vec<Cell>,
-    width: usize,
-    height: usize,
+    pub cells: Vec<Cell>,
+    pub width: usize,
+    pub height: usize,
 }
 
 impl Grid {
@@ -105,7 +105,7 @@ impl Grid {
     }
 
     /// binary_tree populates the maze according to the following algorithm:
-    /// Arbitrarily visit every cell, choosing NORTH or EAST as follows:    
+    /// Arbitrarily visit every cell, choosing NORTH or EAST as follows:
     ///
     /// If both NORTH and EAST are valid, choose one direction randomly
     /// If only NORTH is valid, choose it 100% of the time
