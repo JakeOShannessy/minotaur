@@ -16,10 +16,9 @@ categories = ["command-line-utilities"]
 travis-ci = { repository = "jonstites/minotaur", branch = "master" }
 
 [dependencies]
-bincode = "1.1.4"
-bitflags = "1.1.0"
-image = "0.21.2"
-rand = "0.7.0"
-serde = { version = "1.0.94", features = ["derive"] }
-structopt = "0.2.18"
-rand_pcg = "0.2.0"
+bincode = "1"
+bitflags = { version = "2", features = ["serde"] }
+# image = "0.25"
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+rand_pcg = "0.3"

@@ -1,10 +1,4 @@
 #![deny(unsafe_code)]
-
-#[macro_use]
-extern crate bitflags;
-extern crate image;
-
-use image::{ImageBuffer, RgbImage};
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use rand_pcg::Lcg64Xsh32;
@@ -24,8 +18,8 @@ Otherwise, there is a wall between the two Cells.
 It would be a logic error if this Cell had
 NORTH, but its northern neighbor did not have SOUTH.
 */
-bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+bitflags::bitflags! {
+    #[derive(Default, Serialize, Deserialize,PartialEq,Clone,Debug,Copy)]
     pub struct Cell: u8 {
         const NORTH = 0b0001;
         const SOUTH = 0b0010;
@@ -155,7 +149,7 @@ impl Grid {
             let east_valid = self.valid_direction(i, Cell::EAST);
 
             if north_valid && (!east_valid || rng.gen()) {
-                let chosen_cell = rng.gen_range(run_start, i + 1);
+                let chosen_cell = rng.gen_range(run_start..(i + 1));
                 self.link_cells(chosen_cell, Cell::NORTH);
                 // Run resets
                 run_start = i + 1;
@@ -180,7 +174,7 @@ impl Grid {
         let mut visited = vec![false; self.cells.len()];
 
         // Starting cell must be chosen at random.
-        let mut current_cell = rng.gen_range(0, self.cells.len());
+        let mut current_cell = rng.gen_range(0..self.cells.len());
         visited[current_cell] = true;
         let mut num_visited = 1;
 
@@ -226,7 +220,7 @@ impl Grid {
         }
 
         // Randomly set a single cell to be visited
-        let initial: usize = rng.gen_range(0, self.cells.len());
+        let initial: usize = rng.gen_range(0..self.cells.len());
         unvisited.remove(&initial);
 
         let mut unvisited_to_choose_from = unvisited.clone().into_iter().collect::<Vec<usize>>();
@@ -275,7 +269,7 @@ impl Grid {
         let mut visited_cells = HashSet::new();
 
         // Randomly set a single cell to be visited
-        let mut current_cell: usize = rng.gen_range(0, self.cells.len());
+        let mut current_cell: usize = rng.gen_range(0..self.cells.len());
         visited_cells.insert(current_cell);
         // Optimization: maintain frontier of possible cells that are
         // potentially adjacent to a visited cell
@@ -336,7 +330,7 @@ impl Grid {
         let mut visited_cells = HashSet::new();
 
         // Randomly set a single cell to be visited
-        let mut current_cell: usize = rng.gen_range(0, self.cells.len());
+        let mut current_cell: usize = rng.gen_range(0..self.cells.len());
         visited_cells.insert(current_cell);
         // Stack of visited cells
         let mut cell_stack = Vec::new();
@@ -384,67 +378,6 @@ impl Grid {
             }
         }
     }
-
-    pub fn to_image(
-        &self,
-        cell_size: usize,
-        wall_size: usize,
-        background_pixel: image::Rgb<u8>,
-        wall_pixel: image::Rgb<u8>,
-    ) -> RgbImage {
-        let image_width = cell_size * self.width + wall_size;
-        let image_height = cell_size * self.height + wall_size;
-
-        let mut image =
-            ImageBuffer::from_pixel(image_width as u32, image_height as u32, background_pixel);
-
-        for (cell_index, cell) in self.cells.iter().enumerate() {
-            let x = (cell_index % self.width) * cell_size;
-            let y = (cell_index / self.width) * cell_size;
-
-            if !cell.contains(Cell::NORTH) {
-                for wall_offset in 0..wall_size {
-                    for cell_offset in 0..=cell_size {
-                        let x_temp = x + cell_offset;
-                        let y_temp = y + wall_offset;
-                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel)
-                    }
-                }
-            }
-
-            if !cell.contains(Cell::SOUTH) {
-                for wall_offset in 0..wall_size {
-                    for cell_offset in 0..(cell_size + wall_size) {
-                        let x_temp = x + cell_offset;
-                        let y_temp = y + cell_size + wall_offset;
-                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel)
-                    }
-                }
-            }
-
-            if !cell.contains(Cell::WEST) {
-                for wall_offset in 0..wall_size {
-                    for cell_offset in 0..=cell_size {
-                        let y_temp = y + cell_offset;
-                        let x_temp = x + wall_offset;
-                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel);
-                    }
-                }
-            }
-
-            if !cell.contains(Cell::EAST) {
-                for wall_offset in 0..wall_size {
-                    for cell_offset in 0..=cell_size {
-                        let x_temp = x + cell_size + wall_offset;
-                        let y_temp = y + cell_offset;
-                        image.put_pixel(x_temp as u32, y_temp as u32, wall_pixel);
-                    }
-                }
-            }
-        }
-
-        image
-    }
 }
 
 impl std::fmt::Display for Grid {
@@ -466,13 +399,13 @@ impl std::fmt::Display for Grid {
             };
 
             bottom.push_str(south_boundary);
-            bottom.push_str("+");
+            bottom.push('+');
 
             if (i + 1) % self.width == 0 {
                 output.push_str(&top);
-                output.push_str("\n");
+                output.push('\n');
                 output.push_str(&bottom);
-                output.push_str("\n");
+                output.push('\n');
 
                 top = "|".to_string();
                 bottom = "+".to_string();
